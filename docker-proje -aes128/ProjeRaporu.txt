@@ -1,0 +1,70 @@
+
+
+## 1. Proje Özeti
+
+Bu proje, iki bağımsız aktör (Person A ve Person B) arasındaki veri trafiğini, **RSA (Rivest-Shamir-Adleman)** asimetrik şifreleme algoritması kullanarak güvenli hale getirmeyi amaçlayan bir istemci-sunucu (client-server) modelidir. Sistem, Docker konteyner yapısı üzerinde çalışacak şekilde tasarlanmıştır.
+
+### Teknik Bileşenler
+
+* 
+**Programlama Dili:** Python 3.9 
+
+
+* **Kriptografi Kütüphanesi:** `pycryptodome` (RSA ve PKCS1_OAEP protokolleri için)
+* **İletişim Protokolü:** TCP/IP Sockets
+* **Orkestrasyon:** Docker Compose
+
+---
+
+## 2. Sistem Mimarisi ve İş Akışı
+
+Sistem, "Asimetrik Şifreleme" prensibine dayanır. Bu yöntemde veri bir anahtar (Public Key) ile kilitlenir, ancak yalnızca onun eşi olan diğer anahtar (Private Key) ile açılabilir.
+
+### Çalışma Adımları:
+
+1. **Anahtar Üretimi (Person B):** Sunucu (API), 1024-bit uzunluğunda bir RSA anahtar çifti üretir.
+2. **El Sıkışma (Handshake):** İstemci (Person A) bağlandığında, sunucu kendi **Public Key**'ini (Açık Anahtar) ağ üzerinden istemciye gönderir.
+3. **Şifreleme (Person A):** İstemci, aldığı bu Public Key'i kullanarak mesajını şifreler ve Base64 formatına dönüştürerek sunucuya geri gönderir.
+4. **Deşifreleme (Person B):** Sunucu, gelen şifreli veriyi yalnızca kendisinde bulunan **Private Key** (Gizli Anahtar) ile çözer ve orijinal veriye ulaşır.
+
+---
+
+## 3. Dosya Analizi
+
+| Dosya | Rolü | Önemli Özellikler |
+| --- | --- | --- |
+| `server_api.py` | **Person B (Sunucu)** | RSA anahtar üretimini yapar. 5555 portunu dinler. Private Key'i asla dışarı çıkarmaz. |
+| `server_client.py` | **Person A (İstemci)** | Sunucuya bağlanır. Public Key'i alır. PKCS1_OAEP dolgusu ile mesajı şifreler. |
+| `Dockerfile` | **Paketleme** | `python:3.9-slim` tabanlıdır. Gerekli kriptografi kütüphanelerini yükler. 
+
+ |
+| `docker-compose.yml` | **Orkestrasyon** | `server-api` ve `server-client` servislerini tanımlar. Konteynerlar arası ağ iletişimini yönetir. |
+
+---
+
+## 4. Güvenlik ve Protokol Detayları
+
+* **Algoritma:** RSA-1024 (İç Yol 1 olarak tanımlanmıştır).
+* **Dolgu (Padding):** PKCS1_OAEP (Optimal Asymmetric Encryption Padding) kullanılarak brute-force ve benzeri saldırılara karşı koruma sağlanmıştır.
+* **Veri Formatı:** Şifrelenmiş veriler, ağ üzerinde bozulmadan taşınabilmesi için **Base64** ile encode edilmiştir.
+
+---
+
+## 5. Kurulum ve Çalıştırma
+
+Sistemi ayağa kaldırmak için Docker yüklü bir terminalde projenin kök dizininde aşağıdaki komut çalıştırılmalıdır:
+
+```bash
+docker-compose up --build
+
+```
+
+**Gözlemlenecek Çıktı:**
+
+* `server_b_api` loglarında üretilen Public Key ve çözülen mesajlar görünür.
+* `server_a_client` loglarında şifrelenmiş (encrypted) mesaj blokları görünür.
+
+---
+
+**Gelecek Planlaması:** Mevcut yapı RSA-1024 bit kullanmaktadır. Proje hiyerarşisine göre bir sonraki aşama güvenliği artırmak amacıyla **RSA-2048** (İç Yol 2) ve ardından **RSA-4096** (İç Yol 3) geçişlerini içermektedir.
+

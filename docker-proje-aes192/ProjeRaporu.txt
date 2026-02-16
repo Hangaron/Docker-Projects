@@ -1,0 +1,45 @@
+
+
+## 🛡️ Proje Raporu: AES-128 Şifreli Haberleşme Sistemi
+
+Bu proje, bir ağ üzerindeki iki farklı servis arasında verilerin **AES-128 (CBC Modu)** kullanılarak uçtan uca şifrelenmiş bir şekilde iletilmesini sağlayan Python tabanlı bir mikroservis uygulamasıdır.
+
+### 1. Sistemin Genel Mimarisi
+
+Sistem, Docker üzerinde koşan iki ana bileşenden oluşmaktadır:
+
+* **`server-api` (Alıcı/Sunucu):** 5555 portunu dinleyen, gelen şifreli verileri çözen ve anlamlı metne dönüştüren servistir.
+* **`server-client` (Gönderici/İstemci):** Veriyi belirlenen anahtar ile şifreleyen ve ağ üzerinden sunucuya ileten servistir.
+
+### 2. Teknik Bileşenler ve Güvenlik Mekanizması
+
+#### A. Şifreleme Algoritması (AES-128)
+
+* **Mod:** CBC (Cipher Block Chaining) modu kullanılmıştır.
+* **Anahtar Yönetimi:** Her iki servis de `1234567890123456` değerine sahip 16-byte'lık (128-bit) ortak bir anahtar (`SHARED_KEY`) kullanmaktadır.
+* **IV (Initialization Vector):** İstemci tarafında her mesaj için rastgele bir IV oluşturulur ve şifreli verinin başına eklenerek sunucuya gönderilir.
+* **Padding:** Verinin blok boyutuna tamamlanması için PKCS7 standardında dolgu (padding) işlemi uygulanmaktadır.
+
+#### B. Konteynerleştirme (Docker)
+
+* **Dockerfile:** `python:3.9-slim` tabanlı hafif bir imaj kullanılmış ve şifreleme için `pycryptodome` kütüphanesi yüklenmiştir.
+* **Orkestrasyon:** `docker-compose.yml` dosyası ile servislerin çevre değişkenleri, port eşlemeleri ve bağımlılıkları (`depends_on`) yönetilmektedir.
+
+### 3. İş Akışı (Data Flow)
+
+1. **Hazırlık:** İstemci, `"Gizli Bilgi: Gizli Gorev Basariyla Tamamlandi!"` mesajını hazırlar.
+2. **Şifreleme:** Mesaj, ortak anahtar ve rastgele IV ile AES-128 formatında şifrelenir.
+3. **İletim:** Şifrelenmiş veri ve IV birleştirilerek **Base64** formatında sunucuya TCP soketi üzerinden gönderilir.
+4. **Deşifre:** Sunucu veriyi alır, Base64'ten çözer, IV'yi ayıklar ve ortak anahtar ile orijinal mesajı ortaya çıkarır.
+
+### 4. Teknik Özet Tablosu
+
+| Özellik | Açıklama |
+| --- | --- |
+| **Programlama Dili** | Python 3.9 |
+| **Kütüphane** | PyCryptodome |
+| **Port** | 5555 |
+| **Ağ Protokolü** | TCP (Socket) |
+| **Veri Kodlama** | Base64 |
+
+---

@@ -1,0 +1,52 @@
+
+
+## Proje Genel Bakış
+
+Bu proje, Docker üzerinde koşan iki Python sunucusunun (Sunucu A - İstemci ve Sunucu B - API) birbiriyle olan iletişimini ve bu trafiğin Wireshark/pcap formatında analizini kapsamaktadır.
+
+---
+
+## 1. Sistem Mimarisi ve Bileşenler
+
+Sistem, `docker-compose.yml` dosyası ile yapılandırılmış iki ana servisten oluşmaktadır:
+
+* **Server-API (Sunucu B):** `server_api.py` dosyasını çalıştıran, Flask tabanlı bir REST API'dir. Konteyner içindeki **5000** portundan hizmet vermektedir.
+* **Server-Client (Sunucu A):** `server_client.py` dosyasını çalıştıran istemcidir. Belirli aralıklarla Sunucu B'ye GET ve POST istekleri göndermek üzere tasarlanmıştır.
+* **Dockerfile:** Her iki servis için de `python:3.9-slim` tabanlı imajı kullanır ve gerekli bağımlılıkları (`flask`, `requests`) yükler.
+
+---
+
+## 2. Trafik Analizi (pcap Bulguları)
+
+`trafik_kaydi.pcap` içeriği incelendiğinde, istemci ve sunucu arasındaki başarılı iletişim döngüleri net bir şekilde görülmektedir:
+
+* 
+**İletişim Protokolü:** Veriler **HTTP/1.1** protokolü üzerinden iletilmektedir.
+
+
+* 
+**İstek Detayları:** İstemci (`python-requests/2.32.5`), sunucunun `/` dizinine GET istekleri atmaktadır.
+
+
+* 
+**Sunucu Yanıtları:** Sunucu (Werkzeug/3.1.5), bu isteklere **200 OK** koduyla ve JSON formatında yanıt vermektedir.
+
+
+* 
+**Mesaj İçeriği:** Sunucudan dönen mesaj: `{"durum":"basarili","mesaj":"Merhaba Sunucu A! Iletisim hatti kuruldu."}` şeklindedir.
+
+
+* 
+**Zamanlama:** Kayıtlara göre istekler yaklaşık her 5 saniyede bir tekrarlanmaktadır (Örn: 09:36:49, 09:36:54, 09:36:59).
+
+
+
+---
+
+## 3. Teknik Notlar ve Kritik Yapılandırmalar
+
+* **Bağlantı Adresi:** İstemci, API'ye ulaşmak için Docker içi ağ adını (`http://server-api:5000`) kullanacak şekilde ayarlanmıştır.
+* **Geliştirici Notu:** `server_client.py` içerisinde trafiğin Windows Wireshark tarafından yakalanabilmesi için `host.docker.internal` kullanımı opsiyonel olarak tanımlanmıştır.
+* **Loglama:** `PYTHONUNBUFFERED=1` ayarı sayesinde Docker logları anlık olarak terminale yansıtılmaktadır.
+
+---

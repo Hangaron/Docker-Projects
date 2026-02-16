@@ -1,0 +1,30 @@
+services:
+  # MQTT Broker (Aracı) - Mesaj trafiği buradan geçecek
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+    volumes:
+      # Mosquitto'nun anonim bağlantılara izin vermesi için yapılandırma
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  server-api:
+    build: .
+    container_name: server_b_api
+    depends_on:
+      - mqtt-broker
+    environment:
+      - MQTT_BROKER=host.docker.internal
+      - PYTHONUNBUFFERED=1
+    command: python server_api.py
+
+  server-client:
+    build: .
+    container_name: server_a_client
+    depends_on:
+      - mqtt-broker
+    environment:
+      - MQTT_BROKER=host.docker.internal
+      - PYTHONUNBUFFERED=1
+    command: python server_client.py

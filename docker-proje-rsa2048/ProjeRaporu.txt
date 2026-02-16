@@ -1,0 +1,51 @@
+
+
+## 🔐 RSA-2048 Şifreleme Proje Raporu
+
+### 1. Projenin Amacı ve Kapsamı
+
+Bu proje, iki farklı birim (Person A ve Person B) arasında **asimetrik şifreleme** kullanarak güvenli veri iletimini sağlamak amacıyla geliştirilmiştir. Proje, hiyerarşik bir yapının ikinci aşaması olan **RSA-2048 bit** anahtar uzunluğunu temel alır.
+
+### 2. Teknik Altyapı ve Bileşenler
+
+Sistem Docker konteyner yapısı üzerine kurgulanmış olup aşağıdaki teknolojileri kullanır:
+
+* **Programlama Dili:** Python 3.9-slim
+* **Kütüphaneler:** `pycryptodome` (Şifreleme işlemleri için), `socket` (Ağ iletişimi için)
+* 
+**Konteynerleştirme:** Docker ve Docker-Compose 
+
+
+
+### 3. Sistem Mimarisi ve Çalışma Mantığı
+
+#### **Person B (Server-API) - Alıcı Birim**
+
+* **Anahtar Üretimi:** 2048-bit uzunluğunda RSA Public ve Private Key çifti oluşturur.
+* **Hizmet:** 5555 portu üzerinden bağlantı bekler.
+* **İşlem Akışı:** Bağlanan istemciye **Public Key**'ini gönderir. Gelen şifreli mesajı kendi **Private Key**'i ile deşifre eder.
+
+#### **Person A (Server-Client) - Gönderici Birim**
+
+* **Bağlantı:** Belirlenen hedef host ve port üzerinden sunucuya bağlanır.
+* **Şifreleme:** Sunucudan aldığı 2048-bit Public Key'i kullanarak mesajı kilitler (şifreler).
+* **İletim:** Şifrelenmiş veriyi (Base64 formatında) sunucuya iletir ve doğrulama yanıtını bekler.
+
+### 4. Güvenlik Analizi
+
+| Özellik | Detay |
+| --- | --- |
+| **Algoritma** | RSA (PKCS1_OAEP) |
+| **Anahtar Uzunluğu** | 2048-bit (Modern Standart) |
+| **Kodlama** | Veri iletimi Base64 formatında güvenli hale getirilmiştir |
+| **İzolasyon** | Konteyner yapısı sayesinde çevresel bağımlılıklardan arındırılmıştır 
+
+ |
+
+### 5. Proje Hiyerarşisi (Gelişim Planı)
+
+Projenin mevcut durumu ve gelecek planları şu şekildedir:
+
+1. **RSA-1024:** Tamamlandı.
+2. **RSA-2048:** **Aktif Proje (Şu anki aşama).**
+3. **RSA-4096:** Planlanan bir sonraki aşama.

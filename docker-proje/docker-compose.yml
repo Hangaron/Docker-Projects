@@ -1,0 +1,19 @@
+services:
+  server-api:
+    build: .
+    container_name: server_b_api
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python server_api.py
+
+  server-client:
+    build: .
+    container_name: server_a_client
+    depends_on:
+      - server-api
+    environment:
+      - API_URL=http://server-api:5000
+      - PYTHONUNBUFFERED=1
+    command: python server_client.py # KRİTİK: İstemcinin doğru dosyayı çalıştırmasını sağlar

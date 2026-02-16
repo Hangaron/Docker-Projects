@@ -1,0 +1,65 @@
+Bu rapor, paylaşılan yapılandırma dosyaları (`docker-compose.yml`, `Dockerfile`), kaynak kodlar (`server_api.py`, `server_client.py`) ve ağ trafiği kaydı (`trafik_kaydi.pcap`) temel alınarak hazırlanmıştır.
+
+## 1. Sistem Mimarisi ve Yapılandırma
+
+Sistem, Docker üzerinde çalışan iki ana servisten oluşmaktadır:
+
+* 
+**Server-API (Sunucu B):** Flask çatısı kullanılarak Python 3.9 tabanlı bir API sunucusu olarak yapılandırılmıştır. Dış dünyadan gelen istekleri **5000** portu üzerinden kabul eder.
+
+
+* **Server-Client (Sunucu A):** Belirli aralıklarla (5 saniye) API sunucusuna HTTP istekleri gönderen bir istemci uygulamasıdır. İletişim için `http://server-api:5000` adresini kullanır.
+
+## 2. Ağ Trafiği Analizi (`trafik_kaydi.pcap`)
+
+Yakalanan paket verileri, iki sunucu arasındaki iletişimin başarılı bir şekilde gerçekleştiğini doğrulamaktadır.
+
+### İletişim Zaman Çizelgesi (Örnek Kesitler):
+
+Trafik kaydı, 11 Şubat 2026 tarihinde gerçekleşen ardışık HTTP GET isteklerini göstermektedir:
+
+* 
+**09:36:49:** İlk başarılı iletişim kuruldu.
+
+
+* 
+**09:36:54:** İkinci istek ve yanıt döngüsü.
+
+
+* 
+**09:37:19:** İletişim kesintisiz devam ediyor.
+
+
+
+### Paket İçeriği ve HTTP Protokolü:
+
+* 
+**İstek (Request):** İstemci (Sunucu A), `python-requests/2.32.5` kütüphanesini kullanarak kök dizine (`/`) GET istekleri atmaktadır.
+
+
+* 
+**Yanıt (Response):** Sunucu B, `Werkzeug/3.1.5` (Flask alt yapısı) ile `200 OK` durum kodu döndürmektedir.
+
+
+* **Veri (Payload):** Sunucu, JSON formatında şu mesajı iletmektedir:
+> 
+> `{"durum":"basarili","mesaj":"Merhaba Sunucu A! Iletisim hatti kuruldu."}`.
+> 
+> 
+
+
+
+## 3. Tespit Edilen Kritik Durumlar
+
+1. 
+**Bağlantı Kararlılığı:** Trafik kayıtları incelendiğinde, istemcinin her 5 saniyede bir düzenli olarak istek gönderdiği ve sunucunun her isteğe başarılı bir şekilde yanıt verdiği görülmektedir.
+
+
+2. **Hata Yönetimi:** `server_client.py` içerisinde bir `try-except` bloğu bulunmasına rağmen, pcap verilerinde herhangi bir bağlantı hatasına veya `500` serisi sunucu hatasına rastlanmamıştır.
+3. **İstemci Yapılandırması:** İstemci kodunda `API_URL` için `host.docker.internal` kullanımı Windows üzerindeki Wireshark izlemeleri için manuel olarak eklenmiş, ancak Docker Compose içerisinde servis ismi (`server-api`) üzerinden iletişim kuracak şekilde dinamik hale getirilmiştir.
+
+## 4. Sonuç
+
+Sistem, Docker konteynerleri arasında beklenen HTTP trafiğini sorunsuz bir şekilde üretmektedir. Sunucu B (API), gelen istekleri terminale loglamakta ve Sunucu A (İstemci) gelen başarılı yanıtları işleyerek ekrana yazdırmaktadır.
+
+---

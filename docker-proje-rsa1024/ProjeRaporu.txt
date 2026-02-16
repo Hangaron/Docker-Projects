@@ -1,0 +1,55 @@
+
+
+## 1. Proje Özeti
+
+Bu proje, iki ayrı servis (Client ve API) arasında **AES-128 (Advanced Encryption Standard)** algoritması kullanılarak uçtan uca şifrelenmiş bir veri iletişimi simülasyonudur. Sistem, Docker konteyner yapısı üzerinde izole bir ağda çalışacak şekilde tasarlanmıştır.
+
+## 2. Teknik Mimari ve Bileşenler
+
+### A. Konteyner Yapısı (Docker)
+
+* **Temel İmaj:** Uygulama, hafif bir Linux dağıtımı olan `python:3.9-slim` üzerinde yapılandırılmıştır.
+* **Bağımlılıklar:** Şifreleme işlemleri için `pycryptodome` kütüphanesi kullanılmaktadır.
+* 
+**Servis Yönetimi:** `docker-compose` dosyası iki ana servisi yönetir:
+
+
+* 
+**server-api:** 5555 portunu dinleyen ve gelen verileri deşifre eden sunucu.
+
+
+* 
+**server-client:** Veriyi şifreleyip sunucuya gönderen istemci.
+
+
+
+
+
+### B. Güvenlik Mekanizması (AES-128)
+
+Sistemde uygulanan şifreleme süreci şu adımları izler:
+
+1. **Shared Key (Ortak Anahtar):** Her iki tarafta da sert kodlanmış 16 byte'lık (`1234567890123456`) bir anahtar kullanılır.
+2. **Encryption (Şifreleme):** İstemci tarafında `AES.MODE_CBC` (Cipher Block Chaining) modu kullanılır. Veri, blok boyutuna tamamlanması için `pad` işlemine tabi tutulur.
+3. **IV (Initialization Vector):** Her şifreleme için rastgele bir IV oluşturulur ve şifreli verinin başına eklenir.
+4. **Base64 Kodlama:** Şifrelenmiş ikili (binary) veri, ağ üzerinde sorunsuz iletilebilmesi için Base64 formatına çevrilir.
+
+## 3. Çalışma Akışı
+
+| Adım | Servis | İşlem |
+| --- | --- | --- |
+| 1 | **server-api** | 5555 portunda dinlemeye başlar. |
+| 2 | **server-client** | "Gizli Bilgi..." mesajını AES-128 ile şifreler. |
+| 3 | **server-client** | Şifreli metni (Ciphertext) TCP soketi üzerinden API'ye gönderir. |
+| 4 | **server-api** | Gelen Base64 veriyi çözer, IV'yi ayırır ve anahtar ile deşifre eder. |
+| 5 | **server-api** | Orijinal mesajı ekrana yazdırır ve istemciye onay gönderir. |
+
+---
+
+## 4. Analiz ve Güvenlik Notları
+
+* **Güvenli İletişim:** Veri ağ üzerinde ham metin olarak değil, şifreli (ciphertext) olarak taşınır. Bu, "Man-in-the-Middle" (Araya Girme) saldırılarına karşı temel bir koruma sağlar.
+* **Konteyner İzolasyonu:** Servisler Docker ağı içinde izole edilmiştir. `PYTHONUNBUFFERED=1` ayarı sayesinde loglar anlık olarak takip edilebilir.
+
+
+* **Geliştirme Önerisi:** Gerçek dünya senaryolarında `SHARED_KEY` dosya içinde statik tutulmak yerine, ortam değişkenleri (Environment Variables) veya bir Key Management System (KMS) üzerinden yönetilmelidir.

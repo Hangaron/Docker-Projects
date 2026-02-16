@@ -1,0 +1,50 @@
+Proje Raporu: Docker Üzerinde Modbus TCP Sıcaklık Simülasyonu
+
+1. Projenin Amacı
+
+Bu çalışma, endüstriyel haberleşme protokolü olan Modbus TCP'yi kullanarak, iki farklı sunucu (konteyner) arasında anlamlı veri transferi gerçekleştirmeyi amaçlamaktadır. Projede bir sıcaklık sensörü simüle edilmiş ve bu verilerin periyodik olarak toplanması sağlanmıştır.
+
+2. Sistem Mimarisi
+
+Sistem, Docker üzerinde çalışan iki ana servisten oluşmaktadır:
+
+Sensor (Modbus Server): Python tabanlı bir Modbus sunucusudur. Rastgele ancak gerçekçi sıcaklık değerleri (20°C - 30°C arası) üretir. Üretilen veriler, Modbus standartlarına uygun şekilde Holding Register 0 adresine yazılır.
+
+Collector (Modbus Client): Belirli aralıklarla (60 saniye) Sensör servisine bağlanan ve ilgili register üzerindeki veriyi okuyan istemcidir.
+
+3. Teknik Detaylar
+
+3.1. Veri İşleme (Scaling)
+
+Modbus protokolü genellikle tam sayılar (integer) üzerinden çalıştığı için, ondalıklı sıcaklık verileri (örneğin 22.5°C) 10 ile çarpılarak (225) iletilmiştir. İstemci tarafında bu veri tekrar 10'a bölünerek orijinal ondalıklı haline getirilmektedir.
+
+3.2. Docker Yapılandırması
+
+Ağ Yapısı: bridge sürücüsü kullanılarak modbus_net adında izole bir sanal ağ oluşturulmuştur. Servisler birbirlerine Docker DNS sayesinde servis isimleriyle (sensor) erişebilmektedir.
+
+Port Yönlendirme: Sensörün 502 numaralı standart Modbus portu, dış dünyadan (host makineden) izlenebilmesi amacıyla 5020 portuna eşlenmiştir.
+
+Optimizasyon: PYTHONUNBUFFERED=1 ortam değişkeni kullanılarak, konteyner loglarının anlık olarak terminale düşmesi sağlanmıştır.
+
+4. Uygulama ve Test Sonuçları
+
+4.1. Terminal Çıktıları
+
+Sistem başarıyla ayağa kaldırıldığında aşağıdaki log akışı doğrulanmıştır:
+
+[SENSOR] Yeni sıcaklık üretildi: 24.8°C (Register: 248)
+
+[COLLECTOR] Sunucudan alınan anlamlı veri -> Sıcaklık: 24.8°C
+
+4.2. Wireshark Paket Analizi
+
+Npcap Loopback Adapter üzerinden yapılan ağ analizinde:
+
+Paket 1073 (Request): İstemcinin veri talebi.
+
+Paket 1075 (Response): Sunucunun 22.5°C (Hex: 00 e1) değerini döndürdüğü paket.
+"Farklı Çözümle" (Decode As) yöntemiyle TCP paketlerinin Modbus protokolü olarak başarıyla çözümlendiği ve register değerlerinin paket içinde görülebildiği teyit edilmiştir.
+
+5. Sonuç
+
+Bu proje ile mikroservis mimarisi içerisinde endüstriyel protokollerin kullanımı simüle edilmiştir. Sistem, Docker'ın sunduğu izole ağ avantajlarını kullanarak güvenli ve ölçeklenebilir bir veri toplama altyapısı sunmaktadır.

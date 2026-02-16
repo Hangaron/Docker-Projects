@@ -1,0 +1,68 @@
+
+
+# 📋 Proje Analiz Raporu: MQTT ve HTTP Tabanlı Mikroservis İletişimi
+
+## 1. Proje Özeti
+
+Bu proje, Docker konteynerleri üzerinde koşan üç ana bileşenden (MQTT Broker, Server-API ve Server-Client) oluşan bir mikroservis ekosistemidir. Sistem, hem **asenkron mesajlaşma (MQTT)** hem de **senkron veri transferi (HTTP)** protokollerini simüle etmek veya test etmek amacıyla tasarlanmıştır.
+
+## 2. Sistem Mimarisi ve Bileşenler
+
+### A. Altyapı Bileşenleri
+
+* **MQTT Broker (Aracı):** `eclipse-mosquitto` imajı kullanılarak oluşturulmuştur. Cihazlar ve servisler arasındaki mesaj trafiğini yönetir. `mosquitto.conf` dosyası ile anonim bağlantılara izin verecek şekilde yapılandırılmıştır.
+* **Server-API (Subscriber/Dinleyici):** Python tabanlı bir servistir. MQTT Broker'a bağlanarak `laboratuvar/mesajlar` konusunu (topic) dinler.
+* **Server-Client (Publisher/Yayıncı):** MQTT Broker'a her 5 saniyede bir rastgele sayı içeren selamlaşma mesajları gönderir.
+
+### B. Konteyner Yapılandırması
+
+Sistem, Docker Compose kullanılarak tek bir ağ üzerinde yönetilmektedir:
+
+* **Ortam Değişkenleri:** Servisler, Broker adresi olarak `host.docker.internal` kullanacak şekilde ayarlanmıştır.
+* **Bağımlılıklar:** `server-api` ve `server-client` servisleri, çalışmaya başlamak için `mqtt-broker`'ın hazır olmasını bekler.
+
+---
+
+## 3. Kod Analizi
+
+### MQTT Mesajlaşma Akışı
+
+1. **Bağlantı:** `paho-mqtt` kütüphanesi kullanılarak Broker'a bağlantı kurulur.
+2. **Yayın (Publish):** Client, `client.publish(TOPIC, mesaj)` komutuyla veriyi iletir.
+3. **Abone Olma (Subscribe):** API servisi, `client.subscribe(TOPIC)` ile konuyu takibe alır ve gelen her mesajı `on_message` fonksiyonu ile ekrana yazdırır.
+
+---
+
+## 4. Ağ Trafiği Analizi (`trafik_kaydi.pcap`)
+
+Paylaşılan trafik kaydı incelendiğinde, sistemde planlanan MQTT trafiğinin ötesinde yoğun bir **HTTP iletişimi** gözlemlenmiştir.
+
+### Önemli Tespitler:
+
+* 
+**Protokol:** Trafik kaydında `GET / HTTP/1.1` istekleri ve `HTTP/1.1 200 OK` yanıtları baskındır.
+
+
+* 
+**İletişim Kurulan Adres:** İsteklerin `server-api:5000` adresine yapıldığı görülmektedir.
+
+
+* **İçerik:** Sunucu her başarılı istekte şu JSON yanıtını dönmektedir:
+> 
+> `{"durum":"basarili","mesaj":"Merhaba Sunucu A! Iletisim hatti kuruldu."}`.
+> 
+> 
+
+
+* 
+**Zamanlama:** Kayıtlara göre iletişim 11 Şubat 2026 tarihinde, saat 09:36:49'da başlamış ve yaklaşık 5 saniyelik aralıklarla düzenli olarak devam etmiştir.
+
+
+
+---
+
+## 5. Sonuç ve Değerlendirme
+
+Sistem başarıyla ayağa kalkmış ve bileşenler arası iletişim sağlanmıştır. Ancak pcap dosyasındaki veriler, mevcut Python kodlarında (server_api.py ve server_client.py) açıkça görünmeyen bir **HTTP REST API** mekanizmasının da arka planda çalıştığını (muhtemelen Flask veya benzeri bir kütüphane ile port 5000 üzerinden) göstermektedir. MQTT trafiği "asenkron" bir yapı sunarken, pcap'teki HTTP kayıtları sistemin "durum kontrolü" (health check) veya doğrudan veri sorgulama için senkron bir hat kullandığını kanıtlamaktadır.
+
+---

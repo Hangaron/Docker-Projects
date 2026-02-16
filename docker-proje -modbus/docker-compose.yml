@@ -1,0 +1,19 @@
+services:
+  server-api:
+    build: .
+    container_name: server_b_api
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "5555:5555"
+    command: python server_api.py
+
+  server-client:
+    build: .
+    container_name: server_a_client
+    depends_on:
+      - server-api
+    environment:
+      - TARGET_HOST=host.docker.internal
+      - PYTHONUNBUFFERED=1
+    command: python server_client.py

@@ -1,0 +1,19 @@
+services:
+  server-api:
+    build: .
+    container_name: server_b_api
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "2323:2323" # Telnet sunucumuz bu port üzerinden dinleme yapacak
+    command: python server_api.py
+
+  server-client:
+    build: .
+    container_name: server_a_client
+    depends_on:
+      - server-api
+    environment:
+      - TELNET_HOST=host.docker.internal # Wireshark için trafiği localhost'a zorluyoruz
+      - PYTHONUNBUFFERED=1
+    command: python server_client.py

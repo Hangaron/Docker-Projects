@@ -1,0 +1,24 @@
+services:
+  # Sıcaklık Sensörü (Modbus Server)
+  sensor:
+    build: .
+    container_name: temperature_sensor
+    command: python sensor/sensor_server.py
+    ports:
+      - "5020:502"
+    networks:
+      - modbus_net
+
+  # Veri Toplayıcı (Modbus Client)
+  collector:
+    build: .
+    container_name: data_collector
+    command: python collector/collector_client.py
+    depends_on:
+      - sensor
+    networks:
+      - modbus_net
+
+networks:
+  modbus_net:
+    driver: bridge

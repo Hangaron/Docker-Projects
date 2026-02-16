@@ -1,0 +1,80 @@
+
+
+## 📋 Proje Özeti
+
+Bu çalışma, bir istemci (Client) ve bir sunucu (API) arasındaki veri trafiğini şifreleyerek ağ üzerinden dinleme (eavesdropping) yapılsa dahi içeriğin okunmasını engellemeyi amaçlar. Sistem, Docker üzerinde konteynerize edilerek izole bir ağda çalışacak şekilde tasarlanmıştır.
+
+### 🛠 Kullanılan Teknolojiler
+
+* 
+**Programlama Dili:** Python 3.9-slim 
+
+
+* 
+**Kütüphaneler:** `pycryptodome` (Kriptografi işlemleri için), `socket` (Ağ iletişimi için) 
+
+
+* 
+**Orkestrasyon:** Docker & Docker Compose 
+
+
+* **Şifreleme Algoritması:** AES-128 CBC (Cipher Block Chaining)
+
+---
+
+## 🏗 Mimari Yapı ve Bileşenler
+
+### 1. Server-API (`server_api.py`)
+
+Sistemin alıcı kısmıdır. 5555 portu üzerinden gelen bağlantıları dinler.
+
+* **Görev:** Gelen Base64 formatındaki şifreli veriyi alır, IV (Initialization Vector) ve ciphertext kısımlarını ayırır, `SHARED_KEY` ile deşifre eder ve orijinal mesajı ekrana basar.
+* **Güvenlik Parametresi:** `SHARED_KEY = b'1234567890123456'` (16 byte AES-128 standardı).
+
+### 2. Server-Client (`server_client.py`)
+
+Sistemin gönderici kısmıdır.
+
+* **Görev:** "Gizli Bilgi: Gizli Gorev Basariyla Tamamlandi!" mesajını AES-128 ile şifreler.
+* **İşlem Akışı:** Her mesaj gönderimi için rastgele bir IV üretir, mesajı blok boyutuna tamamlar (padding), şifreler ve hem IV'yi hem de şifreli veriyi Base64 ile kodlayarak sunucuya iletir.
+
+### 3. Docker Yapılandırması
+
+* **Dockerfile:** Python ortamını hazırlar, çalışma dizinini `/app` olarak belirler ve `pycryptodome` kütüphanesini kurar.
+* **Docker Compose:** İki servisi tanımlar. `server-client` servisinin, `server-api` ayağa kalkmadan başlamaması için `depends_on` kuralı eklenmiştir.
+
+
+
+---
+
+## 🔒 Güvenlik Analizi
+
+| Özellik | Açıklama |
+| --- | --- |
+| **Algoritma** | **AES-128**; endüstri standardında güvenilir bir simetrik şifreleme yöntemidir. |
+| **Mod** | **CBC (Cipher Block Chaining)**; her blok bir öncekinin şifreli haliyle işleme sokularak güvenlik artırılır. |
+| **IV Kullanımı** | Şifreleme sırasında her seferinde rastgele bir IV üretilir. Bu, aynı mesajın her seferinde ağda farklı bir şifreli metin olarak görünmesini sağlar. |
+| **Kodlama** | Şifreli binary veri, ağda sorunsuz taşınabilmesi için **Base64** formatına çevrilir. |
+
+---
+
+## 🚀 Çalıştırma Talimatı
+
+Projeyi başlatmak için terminal üzerinden aşağıdaki komutu kullanabilirsiniz:
+
+```bash
+docker-compose up --build
+
+```
+
+**Beklenen Çıktı Akışı:**
+
+1. 
+`server_b_api` 5555 portunu dinlemeye başlar.
+
+
+2. `server_a_client` veriyi şifreler ve ekrana `Sifrelenmis (AES): ...` şeklinde çıktı verir.
+3. Sunucu tarafında `[SIFRESI COZULMUS MESAJ]: Gizli Bilgi...` ifadesi görülür.
+
+---
+

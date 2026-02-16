@@ -1,0 +1,73 @@
+
+
+## 1. Proje Özeti
+
+Bu proje, iki farklı servis (İstemci ve Sunucu) arasında ağ üzerinden güvenli veri iletimini simüle eder. Veriler, taşıma sırasında ele geçirilse bile okunamaz hale getirilmesi için **AES-128 (Advanced Encryption Standard)** algoritması ve **CBC (Cipher Block Chaining)** modu kullanılarak şifrelenir.
+
+---
+
+## 2. Sistem Mimarisi ve Bileşenler
+
+Sistem, Docker konteynerleri üzerinde çalışan iki ana bileşenden oluşur:
+
+### A. Sunucu (server-api)
+
+* **Görevi:** İstemciden gelen şifrelenmiş verileri karşılamak, deşifre etmek ve orijinal mesajı ekrana basmak.
+* **Teknik Detaylar:**
+* `0.0.0.0:5555` portunda TCP dinlemesi yapar.
+* Gelen verinin ilk 16 byte'ını **IV (Initialization Vector)** olarak ayırır.
+* `1234567890123456` ortak anahtarını kullanarak veriyi çözer.
+
+
+
+### B. İstemci (server-client)
+
+* **Görevi:** Belirlenen gizli mesajı şifreleyerek sunucuya iletmek.
+* **Teknik Detaylar:**
+* Her gönderimde yeni bir rastgele IV oluşturur.
+* Mesajı AES blok boyutuna (16 byte) tamamlamak için **Padding** uygular.
+* IV ve şifreli veriyi birleştirip **Base64** formatında sunucuya gönderir.
+
+
+
+---
+
+## 3. Kullanılan Teknolojiler
+
+| Teknoloji | Kullanım Amacı |
+| --- | --- |
+| **Python 3.9-slim** | Hafif ve verimli çalışma ortamı. |
+| **Pycryptodome** | AES şifreleme ve deşifreleme işlemleri için temel kütüphane. |
+| **Docker & Compose** | Servislerin izole edilmesi ve orkestrasyonu. |
+| **Socket Programlama** | Servisler arası TCP/IP tabanlı iletişim. |
+
+---
+
+## 4. Güvenlik Mekanizması
+
+Sistemde uygulanan güvenlik adımları şu şekildedir:
+
+1. **Simetrik Şifreleme:** Hem gönderici hem alıcı aynı `SHARED_KEY` değerine sahiptir.
+2. **CBC Modu & IV:** Aynı mesajın her seferinde farklı bir şifreli metin (ciphertext) üretmesi sağlanarak "sözlük saldırıları" engellenir.
+3. **Base64 Kodlama:** Şifrelenmiş ikili (binary) verinin ağ protokollerinde bozulmadan taşınabilmesi için metin formatına dönüştürülmesidir.
+
+---
+
+## 5. Kurulum ve Çalıştırma
+
+Projeyi ayağa kaldırmak için terminalde proje dizinine giderek şu komutu çalıştırmanız yeterlidir:
+
+```bash
+docker-compose up --build
+
+```
+
+**İş Akışı:**
+
+* `server-api` ayağa kalkar ve portu dinlemeye başlar.
+* `server-client` 5 saniye bekledikten sonra bağlantı kurar.
+* İstemci: `Gizli Bilgi...` -> Şifreler -> Gönderir.
+* Sunucu: Veriyi alır -> Deşifre eder -> Orijinal mesajı gösterir.
+
+---
+

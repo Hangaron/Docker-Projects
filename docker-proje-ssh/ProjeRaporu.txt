@@ -1,0 +1,45 @@
+🛡️ Proje Teknik Analiz Raporu
+Bu proje, iki farklı sunucu (Sunucu A ve Sunucu B) arasındaki iletişimi simüle eden, özellikle güvenli olmayan protokollerin (Telnet) ağ üzerindeki risklerini ve Docker ortamında konteynerler arası iletişimi göstermek amacıyla tasarlanmıştır.
+
+1. Sistem Mimarisi ve Bileşenler
+Proje, mikroservis yapısında iki ana bileşenden oluşmaktadır:
+
+Server-API (Sunucu B): 2323 portu üzerinden dış dünyaya ve yerel ağa hizmet veren bir Telnet sunucusudur. Python socket ve threading kütüphanelerini kullanarak eşzamanlı bağlantıları kabul eder.
+
+Server-Client (Sunucu A): Sunucu B'ye belirli aralıklarla bağlanan istemcidir. Wireshark gibi araçlarla trafiği izleyebilmek için trafiği host.docker.internal üzerinden yönlendirecek şekilde yapılandırılmıştır.
+
+2. Güvenlik Analizi: Telnet Kullanımı
+Projenin en kritik noktası, iletişim için Telnet protokolünün seçilmiş olmasıdır.
+
+Açık Metin (Plain-text) İletişimi: server_client.py dosyası, kullanıcı adı (admin) ve şifre (secret123) bilgilerini ağ üzerinden şifrelemeden göndermektedir.
+
+Paket İzleme Riski: İletişim şifrelenmediği için, ağ trafiğine erişimi olan herhangi bir saldırgan (MITM - Aradaki Adam saldırısı), kullanıcı bilgilerini ve komutları kolayca ele geçirebilir.
+
+3. Docker Yapılandırması
+Sistem, docker-compose ile tek komutla ayağa kalkacak şekilde optimize edilmiştir:
+
+
+Dockerfile: Hafif bir imaj oluşturmak için python:3.9-slim taban imajı kullanılmıştır. Standart kütüphaneler kullanıldığı için harici bağımlılık (pip install) gereksinimi ortadan kaldırılarak imaj boyutu küçültülmüştür.
++1
+
+Ortam Değişkenleri: PYTHONUNBUFFERED=1 ayarı ile logların anlık olarak Docker terminaline düşmesi sağlanmıştır.
+
+4. Ağ Trafiği Kaydı (PCAP) İncelemesi
+Eklenen trafik_kaydi.pcap verileri, sistemin çalışma anındaki ağ hareketliliğini doğrulamaktadır:
+
+
+Bağlantı Akışı: Kayıtlarda Sunucu A ile Sunucu B arasındaki HTTP (ve Telnet olması beklenen) istekleri görülmektedir.
++1
+
+
+Sunucu Yanıtları: Sunucu B'den gelen {"durum":"basarili","mesaj":"Merhaba Sunucu A! Iletisim hatti kuruldu."} şeklindeki JSON yanıtları, başarılı bir TCP el sıkışması ve veri transferi yapıldığını kanıtlamaktadır.
++1
+
+📝 Sonuç ve Öneriler
+Bu çalışma, yerel geliştirme ortamında konteynerler arası bağlantı kurmak için başarılı bir örnektir. Ancak gerçek dünya senaryolarında;
+
+Telnet yerine SSH kullanılmalıdır.
+
+Veri transferi için HTTP yerine HTTPS (TLS/SSL) tercih edilmelidir.
+
+Şifreler kaynak kodda (server_client.py) açıkça yazılmamalı, Docker Secrets veya ortam değişkenleri ile yönetilmelidir.

@@ -1,0 +1,79 @@
+ 🛡️ Proje Genel Bakış: ECC ve Hibrit Şifreleme
+
+Bu çalışma, veriyi doğrudan asimetrik anahtarla şifrelemek yerine (ki bu yavaştır), asimetrik şifrelemeyi **"ortak bir sır" (Shared Secret)** oluşturmak için kullanır. Asıl veri iletimi ise bu sır kullanılarak çok daha hızlı olan **AES (Simetrik Şifreleme)** ile gerçekleştirilir.
+
+### Kullanılan Teknolojiler
+
+* 
+**Dil:** Python 3.9 
+
+
+* 
+**Kütüphane:** `pycryptodome` (Kriptografik işlemler için) 
+
+
+* **Algoritmalar:**
+* **ECC (NIST P-256):** Anahtar değişimi ve kimlik doğrulama için.
+* **ECDH:** Güvenli bir kanal üzerinden ortak şifreleme anahtarı üretmek için.
+* **AES-CBC:** Verinin yüksek hızda şifrelenmesi için.
+* **SHA-256:** Anahtar türetme fonksiyonu (KDF) olarak.
+
+
+* **Altyapı:** Docker & Docker-Compose (Konteynerize edilmiş mimari).
+
+---
+
+## 🏗️ Mimari ve Çalışma Mantığı
+
+Sistem iki ana bileşenden oluşur: **Server-API (Person B)** ve **Server-Client (Person A)**.
+
+### 1. Anahtar Değişim Süreci (ECDH)
+
+1. **Sunucu Hazırlığı:** Sunucu (`server_api.py`), P-256 eğrisini kullanarak kendi ECC anahtar çiftini oluşturur ve 5555 portunu dinlemeye başlar.
+2. **Public Key Paylaşımı:** İstemci bağlandığında, sunucu kendi **Public Key**'ini (Açık Anahtar) istemciye gönderir.
+3. **İstemci Tarafı:** İstemci (`server_client.py`) sunucunun anahtarını alır ve **kendisi için de geçici (ephemeral) bir anahtar çifti** üretir.
+4. **Ortak Sırrın Hesaplanması:**
+* **İstemci:** Kendi Özel Anahtarı + Sunucunun Açık Anahtarı  **Shared Secret**
+* **Sunucu:** Kendi Özel Anahtarı + İstemcinin Açık Anahtarı  **Shared Secret**
+* Matematiksel olarak her iki taraf da aynı sonucu elde eder.
+
+
+
+### 2. Veri Şifreleme ve İletim
+
+* **Şifreleme:** İstemci, elde edilen "Shared Secret"ı AES anahtarı olarak kullanır. Mesajı `AES-CBC` ile şifreler, bir `IV` (Initialization Vector) oluşturur.
+* **Paketleme:** İstemci; kendi açık anahtarını, IV değerini ve şifreli metni (ciphertext) JSON formatında sunucuya gönderir.
+* **Deşifre:** Sunucu, gelen istemci açık anahtarı ile kendi sırrını hesaplar ve mesajı çözer.
+
+---
+
+## 📂 Dosya Analizleri
+
+### `docker-compose.yml` & `Dockerfile`
+
+* **Orkestrasyon:** İki servis (`server-api` ve `server-client`) tanımlanmıştır.
+* **Bağımlılık:** `server-client`, `depends_on` ile sunucunun başlamasını bekler.
+* 
+**İzolasyon:** `pycryptodome` kütüphanesi Docker imajına dahil edilerek ortam bağımsızlığı sağlanmıştır.
+
+
+
+### `server_api.py` (Person B)
+
+* **Sürekli Dinleme:** `while True` döngüsü ile sürekli yeni bağlantı kabul eder.
+* **Hata Yönetimi:** Deşifre sırasında oluşabilecek hatalar (yanlış anahtar, bozuk veri) `try-except` bloğu ile yakalanır.
+
+### `server_client.py` (Person A)
+
+* **Dinamik Hedef:** `TARGET_HOST` çevre değişkeni ile Docker ağı içindeki sunucuya (`server-api`) veya yerel bilgisayara bağlanabilir.
+* **Periyodik Gönderim:** Her 10 saniyede bir yeni bir anahtar çifti üreterek (Perfect Forward Secrecy konseptine uygun şekilde) mesaj gönderir.
+
+---
+
+## 💡 Neden ECC? (Avantajlar)
+
+Proje içeriğinde de belirtildiği üzere bu yöntemin seçilme nedenleri:
+
+* **Hız:** RSA-4096 gibi eski yöntemlere göre anahtar üretimi ve imzalama çok daha hızlıdır.
+* **Düşük Bant Genişliği:** Çok daha küçük anahtar boyutlarıyla (256-bit) çok yüksek güvenlik (3072-bit RSA eşdeğeri) sağlar.
+* **Modern Standart:** Günümüzde WhatsApp, Signal ve Blockchain altyapılarında tercih edilen standarttır.

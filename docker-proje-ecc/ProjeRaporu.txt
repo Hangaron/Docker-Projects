@@ -1,0 +1,42 @@
+
+
+## 📋 Proje Raporu: RSA-4096 Asimetrik Şifreleme Sistemi
+
+Bu proje, "Yöntem 2" olarak adlandırılan asimetrik şifreleme hiyerarşisinin en üst basamağı olan **RSA-4096** standartlarını uygulamaktadır. Sistem, yüksek güvenlikli veri iletimi için istemci (Client) ve sunucu (API) arasındaki iletişimi "askeri standartlarda" zırhlamayı hedefler.
+
+### 🛠️ Teknik Altyapı ve Bileşenler
+
+* **Programlama Dili:** Python 3.9.
+* **Kütüphaneler:** `pycryptodome` (Şifreleme işlemleri için ana motor).
+* 
+**Konteynerleştirme:** Docker ve Docker Compose kullanılarak izole bir ağ yapısı kurulmuştur.
+
+
+* **Anahtar Boyutu:** 4096-bit (İç Yol 3 - Maksimum Güvenlik Katmanı).
+
+### 🏗️ Sistem Mimarisi
+
+| Bileşen | Dosya | Görev Tanımı |
+| --- | --- | --- |
+| **Person B (API/Server)** | `server_api.py` | 4096-bitlik devasa RSA anahtar çiftini üretir, Public Key'i yayınlar ve gelen şifreli veriyi Private Key ile çözer. |
+| **Person A (Client)** | `server_client.py` | Sunucudan aldığı Public Key ile mesajı şifreler (zırhlar) ve sunucuya iletir. |
+| **Altyapı** | `Dockerfile` & `docker-compose.yml` | Gerekli bağımlılıkları yükler ve servislerin birbirine `5555` portu üzerinden bağlanmasını sağlar.
+
+ |
+
+---
+
+### 🛡️ Güvenlik Analizi
+
+* **Asimetrik Güvenlik:** Veri, dışarıya açık olan Public Key ile şifrelenir; ancak sadece sunucuda bulunan gizli Private Key ile çözülebilir.
+* **Zirve Seviye (Internal Path 3):** 4096-bit anahtar kullanımı, mevcut bilgi işlem gücüyle kırılması imkansıza yakın olan "askeri standartlarda" bir koruma sağlar.
+* **Buffer Yönetimi:** Devasa anahtar boyutu ve şifrelenmiş paket trafiği nedeniyle veri alım (buffer) boyutu **8192 byte** seviyesine çıkarılmıştır.
+
+### 🚀 Çalışma Akışı
+
+1. **Anahtar Üretimi:** Sunucu başlatıldığında 4096-bitlik RSA anahtarlarını üretir (Bu işlem işlemci gücüne göre 2-10 saniye sürebilir).
+2. **Handshake (El Sıkışma):** İstemci sunucuya bağlanır ve sunucu Public Key'ini istemciye gönderir.
+3. **Şifreleme:** İstemci, bu dev anahtarı kullanarak mesajını `PKCS1_OAEP` protokolüyle şifreler ve Base64 formatında sunucuya yollar.
+4. **Deşifre:** Sunucu, gelen paketi kendi Private Key'i ile çözer ve işlemi onaylar.
+
+---

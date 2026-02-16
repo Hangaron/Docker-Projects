@@ -1,0 +1,61 @@
+
+
+## 📋 Proje Genel Bakış
+
+Bu proje, modern kriptografinin "hız şampiyonu" olarak bilinen **Curve25519 (X25519)** eğrisini kullanarak iki servis (Server ve Client) arasında güvenli ve yüksek performanslı bir veri iletişimi kurmayı amaçlar. Sistem, anahtar değişimi için **ECC** ve veri şifreleme için **AES** yöntemlerini birleştiren hibrit bir yapıdadır.
+
+---
+
+## 🛠️ Teknik Bileşenler ve Mimari
+
+### 1. Kullanılan Teknolojiler
+
+* **Programlama Dili:** Python 3.9-slim
+* **Kriptografi Kütüphanesi:** `pycryptodome` (AES, ECC, SHA256 işlemleri için)
+* 
+**Container Altyapısı:** Docker ve Docker Compose 
+
+
+* **İletişim Protokolü:** TCP/IP Sockets
+
+### 2. Kriptografik Detaylar
+
+* **Anahtar Değişimi (Key Agreement):** X25519 eğrisi kullanılarak her iki tarafın kendi özel anahtarları ve karşı tarafın açık anahtarları üzerinden bir "Ortak Sır" (Shared Secret) üretilir.
+* **Özet Fonksiyonu (KDF):** Ortak sır, **SHA256** algoritması ile işlenerek AES şifreleme anahtarına dönüştürülür.
+* **Simetrik Şifreleme:** Veriler **AES-CBC** modunda, rastgele üretilen bir IV (Initialization Vector) ile şifrelenir.
+
+---
+
+## 🚀 Çalışma Akışı (Workflow)
+
+| Adım | İşlem | Açıklama |
+| --- | --- | --- |
+| **1** | **Anahtar Üretimi** | Sunucu (Server API) X25519 anahtar çiftini oluşturur ve Raw formatta yayına başlar. |
+| **2** | **Bağlantı ve Değişim** | İstemci (Client) sunucuya bağlanır ve sunucunun Public Key'ini alır. |
+| **3** | **Ortak Sır Üretimi** | İstemci kendi geçici anahtarını üretir ve sunucununkini kullanarak şifreleme anahtarını (Shared Secret) hesaplar. |
+| **4** | **Hibrit Paketleme** | İstemci mesajı şifreler; kendi Public Key'ini, IV değerini ve şifreli veriyi JSON formatında sunucuya gönderir. |
+| **5** | **Deşifre (Decryption)** | Sunucu, gelen paketteki istemci anahtarı ile kendi özel anahtarını eşleştirerek mesajı çözer. |
+
+---
+
+## 📂 Dosya Yapısı ve Görevleri
+
+* 
+**`docker-compose.yml`**: `server-api` ve `server-client` servislerini ayağa kaldırır, ağ ayarlarını (port 5555) yapar.
+
+
+* **`Dockerfile`**: Python ortamını hazırlar ve gerekli `pycryptodome` kütüphanesini yükler.
+* **`server_api.py`**: Sunucu rolündedir; deşifre işlemlerini yapar ve gelen verileri doğrular.
+* **`server_client.py`**: İstemci rolündedir; güvenli kanalı başlatır ve verileri şifreleyerek gönderir.
+
+---
+
+## 💡 Öne Çıkan Özellikler
+
+* **Modern Standartlar:** NIST P-256 yerine daha hızlı ve güvenli kabul edilen X25519 eğrisi tercih edilmiştir.
+* **Ham Veri Transferi:** Anahtarlar "Raw" formatta ihraç edilerek gereksiz veri kalabalığından kaçınılmıştır.
+* 
+**İzolasyon:** Proje tamamen Dockerize edilmiştir, sistem bağımlılıklarından izole çalışır.
+
+
+

@@ -1,0 +1,67 @@
+Bu proje, **Elliptic Curve Cryptography (ECC)** mimarisinin en üst düzey regülasyonlu ve bilimsel varyasyonlarından biri olan **Brainpool P256r1** eğrisini kullanarak, güvenli bir istemci-sunucu haberleşme altyapısı sunmaktadır.
+
+Aşağıda projenin teknik analizi, çalışma prensipleri ve yapılandırma detayları yer almaktadır:
+
+---
+
+## 1. Proje Özeti ve Amacı
+
+Proje, "Yöntem 3: ECC" serisinin final aşaması olarak tasarlanmıştır. Temel amacı, NIST standartlarına alternatif olarak geliştirilen ve matematiksel karmaşıklığı ile bilinen **Brainpool P256r1** eğrisi üzerinden **Diffie-Hellman (ECDH)** anahtar değişimi yaparak, verileri **AES-256 (CBC Modu)** ile şifreli bir şekilde iletmektir.
+
+### Rol Tanımları
+
+* **Person A (İstemci - server_client.py):** Sunucu ile bağlantı kurar, geçici (ephemeral) Brainpool anahtarı üretir ve veriyi hibrit yöntemle şifreleyerek gönderir.
+* **Person B (Sunucu - server_api.py):** Gelen bağlantıları kabul eder, kendi Brainpool anahtarını paylaşır ve gelen şifreli paketleri deşifre ederek içeriği doğrular.
+
+---
+
+## 2. Teknik Altyapı ve Güvenlik Katmanları
+
+### Kullanılan Teknolojiler ve Kütüphaneler
+
+* **Dil:** Python 3.9.
+* **Kriptografi:** `pycryptodome` kütüphanesi (ECC, AES, SHA256 işlemleri için).
+* 
+**Konteynerleştirme:** Docker ve Docker Compose.
+
+
+
+### Güvenlik Protokolü Akışı
+
+Proje, "Hibrit Şifreleme" prensibiyle çalışır:
+
+1. **ECC Anahtar Üretimi:** Her iki taraf da `brainpoolP256r1` eğrisi üzerinde anahtar çiftleri oluşturur.
+2. **Key Agreement (ECDH):** Sunucu ve istemci, karşılıklı public key'lerini paylaşarak ortak bir sır (**shared secret**) üretir. Bu işlem sırasında `SHA256` tabanlı bir KDF (Key Derivation Function) kullanılır.
+3. **AES Şifreleme:** Üretilen ortak sır, AES-CBC modu için simetrik anahtar olarak kullanılır. Veri, `PKCS7` dolgusu (padding) ile şifrelenir.
+4. **Veri Transferi:** Şifreli veri, IV (Initialization Vector) ve istemci public key'i JSON formatında Base64 ile kodlanarak sunucuya iletilir.
+
+---
+
+## 3. Dosya Yapısı ve Görevleri
+
+| Dosya Adı | Görevi |
+| --- | --- |
+| `Dockerfile` | Python 3.9 tabanlı imaj oluşturur ve `pycryptodome` bağımlılığını kurar. |
+| `docker-compose.yml` | `server-api` ve `server-client` servislerini orkestre eder. İstemcinin sunucuya erişimi için `depends_on` ve `TARGET_HOST` yapılandırmasını içerir.
+
+ |
+| `server_api.py` | 5555 portunu dinleyen, Brainpool anahtarı üzerinden deşifre işlemi yapan API servisidir. |
+| `server_client.py` | Belirli aralıklarla sunucuya şifreli "Gizli Mesaj" gönderen istemci uygulamasıdır. |
+
+---
+
+## 4. Uygulama ve Çalıştırma
+
+Sistemi ayağa kaldırmak için Docker ortamında aşağıdaki komut yeterlidir:
+
+```bash
+docker-compose up --build
+
+```
+
+**Sistem Çıktısı Analizi:**
+
+* Sunucu tarafında `🔓 [BRAINPOOL + AES ÇÖZÜLDÜ]: Gizli Mesaj...` ifadesi görüldüğünde, anahtar değişiminin ve deşifre işleminin başarıyla tamamlandığı doğrulanmış olur.
+* İstemci tarafında `Brainpool P256r1 basariyla cozuldu` yanıtı, uçtan uca güvenli döngünün sağlandığını gösterir.
+
+---
